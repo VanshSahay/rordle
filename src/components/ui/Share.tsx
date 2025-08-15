@@ -112,16 +112,13 @@ export function ShareButton({
       );
 
       // Open cast composer with all supported intents
-      await actions.composeCast(
-        {
-          text: finalText,
-          embeds: processedEmbeds as [string] | [string, string] | undefined,
-          parent: cast.parent,
-          channelKey: cast.channelKey,
-          close: cast.close,
-        },
-        "share-button"
-      );
+      await actions.composeCast({
+        text: finalText,
+        embeds: processedEmbeds as [string] | [string, string] | undefined,
+        parent: cast.parent,
+        channelKey: cast.channelKey,
+        close: cast.close,
+      });
     } catch (error) {
       console.error("Failed to share:", error);
     } finally {

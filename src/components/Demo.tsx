@@ -26,21 +26,13 @@ import { USE_WALLET, APP_NAME } from "~/lib/constants";
 
 export type Tab = "home" | "actions" | "context" | "wallet";
 
-interface NeynarUser {
-  fid: number;
-  score: number;
-}
-
-export default function Demo(
-  { title }: { title?: string } = { title: "Frames v2 Demo" }
-) {
+export default function Demo() {
   const { isSDKLoaded, context, added, notificationDetails, actions } =
     useMiniApp();
-  const [activeTab, setActiveTab] = useState<Tab>("home");
+  const [activeTab] = useState<Tab>("home");
   const [txHash, setTxHash] = useState<string | null>(null);
   const [sendNotificationResult, setSendNotificationResult] = useState("");
   const [copied, setCopied] = useState(false);
-  const [neynarUser, setNeynarUser] = useState<NeynarUser | null>(null);
 
   const { address, isConnected } = useAccount();
   const chainId = useChainId();
@@ -53,24 +45,7 @@ export default function Demo(
     console.log("chainId", chainId);
   }, [context, address, isConnected, chainId, isSDKLoaded]);
 
-  // Fetch Neynar user object when context is available
-  useEffect(() => {
-    const fetchNeynarUserObject = async () => {
-      if (context?.user?.fid) {
-        try {
-          const response = await fetch(`/api/users?fids=${context.user.fid}`);
-          const data = await response.json();
-          if (data.users?.[0]) {
-            setNeynarUser(data.users[0]);
-          }
-        } catch (error) {
-          console.error("Failed to fetch Neynar user object:", error);
-        }
-      }
-    };
 
-    fetchNeynarUserObject();
-  }, [context?.user?.fid]);
 
   const {
     sendTransaction,

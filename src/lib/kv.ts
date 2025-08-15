@@ -1,4 +1,8 @@
-import { FrameNotificationDetails } from "@farcaster/frame-sdk";
+// Use a generic type for notification details since FrameNotificationDetails may not be exported
+type FrameNotificationDetails = {
+  url: string;
+  token: string;
+};
 import { Redis } from "@upstash/redis";
 import { APP_NAME } from "./constants";
 

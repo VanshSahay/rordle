@@ -23,11 +23,6 @@ export function WordleGame() {
   const [gameStatus, setGameStatus] = useState<'playing' | 'won' | 'lost'>('playing');
   const [letterStatuses, setLetterStatuses] = useState<Record<string, 'correct' | 'present' | 'absent' | 'unused'>>({});
 
-  // Initialize game
-  useEffect(() => {
-    resetGame();
-  }, []);
-
   const resetGame = useCallback(() => {
     const randomWord = WORDS[Math.floor(Math.random() * WORDS.length)];
     setTargetWord(randomWord);
@@ -37,6 +32,11 @@ export function WordleGame() {
     setGameStatus('playing');
     setLetterStatuses({});
   }, []);
+
+  // Initialize game
+  useEffect(() => {
+    resetGame();
+  }, [resetGame]);
 
   const evaluateGuess = useCallback((guess: string): LetterState[] => {
     const result: LetterState[] = [];
