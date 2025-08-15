@@ -1,35 +1,31 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { WordleGrid, LetterState } from "./WordleGrid";
-import { WordleKeyboard } from "./WordleKeyboard";
+import { FlexibleWordDisplay, LetterResult } from "./FlexibleWordDisplay";
+import { FlexibleInput } from "./FlexibleInput";
+import { BrainrotImageDisplay } from "./BrainrotImageDisplay";
 import { Button } from "./Button";
+import { getRandomBrainrotItem, BrainrotItem } from "~/lib/brainrotData";
 
-// Simple word list for the demo
-const WORDS = [
-  'REACT', 'FRAME', 'NEYNAR', 'WORLD', 'HAPPY', 'SMART', 'QUICK', 'BRAIN',
-  'HEART', 'DREAM', 'LIGHT', 'PEACE', 'MAGIC', 'POWER', 'STORY', 'DANCE',
-  'MUSIC', 'SPACE', 'OCEAN', 'EARTH', 'STARS', 'FRESH', 'BRAVE', 'SHINE'
-];
+const MAX_ATTEMPTS = 6;
 
-const WORD_LENGTH = 5;
-const MAX_GUESSES = 6;
+type GamePhase = 'showing-image' | 'guessing' | 'won' | 'lost';
 
 export function WordleGame() {
+  const [currentBrainrotItem, setCurrentBrainrotItem] = useState<BrainrotItem | null>(null);
   const [targetWord, setTargetWord] = useState('');
-  const [guesses, setGuesses] = useState<LetterState[][]>([]);
+  const [previousGuesses, setPreviousGuesses] = useState<LetterResult[][]>([]);
   const [currentGuess, setCurrentGuess] = useState('');
-  const [currentRow, setCurrentRow] = useState(0);
-  const [gameStatus, setGameStatus] = useState<'playing' | 'won' | 'lost'>('playing');
+  const [gamePhase, setGamePhase] = useState<GamePhase>('showing-image');
   const [letterStatuses, setLetterStatuses] = useState<Record<string, 'correct' | 'present' | 'absent' | 'unused'>>({});
 
   const resetGame = useCallback(() => {
-    const randomWord = WORDS[Math.floor(Math.random() * WORDS.length)];
-    setTargetWord(randomWord);
-    setGuesses([]);
+    const brainrotItem = getRandomBrainrotItem();
+    setCurrentBrainrotItem(brainrotItem);
+    setTargetWord(brainrotItem.word);
+    setPreviousGuesses([]);
     setCurrentGuess('');
-    setCurrentRow(0);
-    setGameStatus('playing');
+    setGamePhase('showing-image');
     setLetterStatuses({});
   }, []);
 
@@ -38,13 +34,14 @@ export function WordleGame() {
     resetGame();
   }, [resetGame]);
 
-  const evaluateGuess = useCallback((guess: string): LetterState[] => {
-    const result: LetterState[] = [];
+  const evaluateGuess = useCallback((guess: string): LetterResult[] => {
+    const result: LetterResult[] = [];
     const targetLetters = targetWord.split('');
     const guessLetters = guess.split('');
+    const wordLength = Math.max(targetWord.length, guess.length);
     
     // First pass: mark correct letters
-    for (let i = 0; i < WORD_LENGTH; i++) {
+    for (let i = 0; i < wordLength; i++) {
       if (guessLetters[i] === targetLetters[i]) {
         result[i] = { letter: guessLetters[i], status: 'correct' };
         targetLetters[i] = '';
@@ -53,7 +50,7 @@ export function WordleGame() {
     }
     
     // Second pass: mark present letters
-    for (let i = 0; i < WORD_LENGTH; i++) {
+    for (let i = 0; i < wordLength; i++) {
       if (guessLetters[i] && targetLetters.includes(guessLetters[i])) {
         result[i] = { letter: guess[i], status: 'present' };
         const targetIndex = targetLetters.indexOf(guessLetters[i]);
@@ -66,7 +63,7 @@ export function WordleGame() {
     return result;
   }, [targetWord]);
 
-  const updateLetterStatuses = useCallback((evaluatedGuess: LetterState[]) => {
+  const updateLetterStatuses = useCallback((evaluatedGuess: LetterResult[]) => {
     const newStatuses = { ...letterStatuses };
     
     evaluatedGuess.forEach(({ letter, status }) => {
@@ -84,82 +81,117 @@ export function WordleGame() {
   }, [letterStatuses]);
 
   const submitGuess = useCallback(() => {
-    if (currentGuess.length !== WORD_LENGTH || gameStatus !== 'playing') {
+    if (currentGuess.trim().length === 0 || gamePhase !== 'guessing') {
       return;
     }
 
     const evaluatedGuess = evaluateGuess(currentGuess);
-    const newGuesses = [...guesses, evaluatedGuess];
-    setGuesses(newGuesses);
+    const newGuesses = [...previousGuesses, evaluatedGuess];
+    setPreviousGuesses(newGuesses);
     updateLetterStatuses(evaluatedGuess);
 
-    if (currentGuess === targetWord) {
-      setGameStatus('won');
-    } else if (currentRow + 1 >= MAX_GUESSES) {
-      setGameStatus('lost');
-    } else {
-      setCurrentRow(currentRow + 1);
+    if (currentGuess.toUpperCase() === targetWord.toUpperCase()) {
+      setGamePhase('won');
+    } else if (newGuesses.length >= MAX_ATTEMPTS) {
+      setGamePhase('lost');
     }
 
     setCurrentGuess('');
-  }, [currentGuess, gameStatus, evaluateGuess, guesses, updateLetterStatuses, targetWord, currentRow]);
+  }, [currentGuess, gamePhase, evaluateGuess, previousGuesses, updateLetterStatuses, targetWord]);
 
-  const handleKeyPress = useCallback((key: string) => {
-    if (gameStatus !== 'playing' || currentGuess.length >= WORD_LENGTH) {
-      return;
-    }
-    setCurrentGuess(currentGuess + key);
-  }, [currentGuess, gameStatus]);
+  const handleImageTimerComplete = useCallback(() => {
+    setGamePhase('guessing');
+  }, []);
 
-  const handleBackspace = useCallback(() => {
-    if (gameStatus !== 'playing') {
-      return;
-    }
-    setCurrentGuess(currentGuess.slice(0, -1));
-  }, [currentGuess, gameStatus]);
+  const handleInputChange = useCallback((value: string) => {
+    setCurrentGuess(value);
+  }, []);
 
   const getGameStatusMessage = () => {
-    if (gameStatus === 'won') {
-      return `🎉 Congratulations! You guessed "${targetWord}"!`;
+    if (gamePhase === 'won') {
+      return `🎉 BRAINROT MASTERY! You guessed "${targetWord}"! 🧠💯`;
     }
-    if (gameStatus === 'lost') {
-      return `😔 Game over! The word was "${targetWord}".`;
+    if (gamePhase === 'lost') {
+      return `💀 RIP BRAIN CELLS! The answer was "${targetWord}" (${currentBrainrotItem?.description})`;
     }
     return '';
   };
 
+  // Show brainrot image during the image phase
+  if (gamePhase === 'showing-image' && currentBrainrotItem) {
+    return (
+      <BrainrotImageDisplay
+        brainrotItem={currentBrainrotItem}
+        onTimerComplete={handleImageTimerComplete}
+        displayDuration={5}
+      />
+    );
+  }
+
+  // Show the flexible guessing interface
   return (
-    <div className="flex flex-col items-center justify-center p-4 bg-background">
-      <div className="w-full max-w-md mx-auto space-y-4">
-        <div className="text-center">
+    <div className="flex flex-col items-center justify-center p-4 bg-background min-h-screen">
+      <div className="w-full max-w-lg mx-auto space-y-6">
+        <div className="text-center space-y-2">
+          <h1 className="text-2xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+            🧠 BRAINROT GUESSER 💀
+          </h1>
           <p className="text-muted-foreground text-sm">
-            Guess the 5-letter word in 6 tries
+            What was that brainrot image? Type your guess!
           </p>
+          {currentBrainrotItem && (
+            <p className="text-xs text-purple-600 font-medium">
+              Hint: {currentBrainrotItem.description}
+            </p>
+          )}
         </div>
 
-        <WordleGrid 
-          guesses={guesses}
+        <FlexibleWordDisplay
           currentGuess={currentGuess}
-          currentRow={currentRow}
+          previousGuesses={previousGuesses}
+          maxAttempts={MAX_ATTEMPTS}
+          targetWordLength={targetWord.length}
         />
 
-        {gameStatus !== 'playing' && (
+        {gamePhase === 'guessing' && (
+          <FlexibleInput
+            value={currentGuess}
+            onChange={handleInputChange}
+            onSubmit={submitGuess}
+            placeholder="Type your guess..."
+            disabled={false}
+          />
+        )}
+
+        {(gamePhase === 'won' || gamePhase === 'lost') && (
           <div className="text-center space-y-4">
             <p className="text-lg font-semibold text-foreground">
               {getGameStatusMessage()}
             </p>
+            {currentBrainrotItem && gamePhase === 'won' && (
+              <div className="bg-green-100 dark:bg-green-900 p-3 rounded-lg">
+                <p className="text-sm text-green-800 dark:text-green-200">
+                  ✅ You correctly identified: {currentBrainrotItem.description}
+                </p>
+              </div>
+            )}
+            {currentBrainrotItem && gamePhase === 'lost' && (
+              <div className="bg-red-100 dark:bg-red-900 p-3 rounded-lg">
+                <img 
+                  src={currentBrainrotItem.imageUrl} 
+                  alt="The brainrot image" 
+                  className="w-32 h-32 object-cover rounded mx-auto mb-2"
+                />
+                <p className="text-sm text-red-800 dark:text-red-200">
+                  The image was: {currentBrainrotItem.description}
+                </p>
+              </div>
+            )}
             <Button onClick={resetGame} className="mx-auto">
-              Play Again
+              🔄 Next Brainrot Challenge
             </Button>
           </div>
         )}
-
-        <WordleKeyboard
-          onKeyPress={handleKeyPress}
-          onEnter={submitGuess}
-          onBackspace={handleBackspace}
-          letterStatuses={letterStatuses}
-        />
       </div>
     </div>
   );
