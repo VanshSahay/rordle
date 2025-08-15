@@ -1,17 +1,20 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useCallback } from "react";
 import { FlexibleWordDisplay, LetterResult } from "./FlexibleWordDisplay";
 import { FlexibleInput } from "./FlexibleInput";
 import { BrainrotImageDisplay } from "./BrainrotImageDisplay";
+import { RordleStartScreen } from "./RordleStartScreen";
 import { Button } from "./Button";
 import { getRandomBrainrotItem, BrainrotItem } from "~/lib/brainrotData";
 
 const MAX_ATTEMPTS = 6;
 
+type GameState = 'start' | 'playing';
 type GamePhase = 'showing-image' | 'guessing' | 'won' | 'lost';
 
 export function WordleGame() {
+  const [gameState, setGameState] = useState<GameState>('start');
   const [currentBrainrotItem, setCurrentBrainrotItem] = useState<BrainrotItem | null>(null);
   const [targetWord, setTargetWord] = useState('');
   const [previousGuesses, setPreviousGuesses] = useState<LetterResult[][]>([]);
@@ -19,7 +22,7 @@ export function WordleGame() {
   const [gamePhase, setGamePhase] = useState<GamePhase>('showing-image');
   const [letterStatuses, setLetterStatuses] = useState<Record<string, 'correct' | 'present' | 'absent' | 'unused'>>({});
 
-  const resetGame = useCallback(() => {
+  const startGame = useCallback(() => {
     const brainrotItem = getRandomBrainrotItem();
     setCurrentBrainrotItem(brainrotItem);
     setTargetWord(brainrotItem.word);
@@ -27,12 +30,22 @@ export function WordleGame() {
     setCurrentGuess('');
     setGamePhase('showing-image');
     setLetterStatuses({});
+    setGameState('playing');
   }, []);
 
-  // Initialize game
-  useEffect(() => {
-    resetGame();
-  }, [resetGame]);
+  const quitGame = useCallback(() => {
+    setGameState('start');
+    setCurrentBrainrotItem(null);
+    setTargetWord('');
+    setPreviousGuesses([]);
+    setCurrentGuess('');
+    setGamePhase('showing-image');
+    setLetterStatuses({});
+  }, []);
+
+  const resetGame = useCallback(() => {
+    startGame();
+  }, [startGame]);
 
   const evaluateGuess = useCallback((guess: string): LetterResult[] => {
     const result: LetterResult[] = [];
@@ -117,12 +130,18 @@ export function WordleGame() {
     return '';
   };
 
+  // Show start screen
+  if (gameState === 'start') {
+    return <RordleStartScreen onStart={startGame} />;
+  }
+
   // Show brainrot image during the image phase
   if (gamePhase === 'showing-image' && currentBrainrotItem) {
     return (
       <BrainrotImageDisplay
         brainrotItem={currentBrainrotItem}
         onTimerComplete={handleImageTimerComplete}
+        onQuit={quitGame}
         displayDuration={5}
       />
     );
@@ -131,16 +150,26 @@ export function WordleGame() {
   // Show the flexible guessing interface
   return (
     <div className="flex flex-col items-center justify-center p-4 bg-background min-h-screen">
+      {/* Quit button */}
+      <div className="absolute top-4 left-4">
+        <button
+          onClick={quitGame}
+          className="px-3 py-1 text-sm border border-muted-foreground text-muted-foreground hover:bg-muted-foreground hover:text-background transition-colors"
+        >
+          ← QUIT
+        </button>
+      </div>
+
       <div className="w-full max-w-lg mx-auto space-y-6">
         <div className="text-center space-y-2">
-          <h1 className="text-2xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
-            🧠 BRAINROT GUESSER 💀
+          <h1 className="text-2xl font-bold text-foreground">
+            RORDLE
           </h1>
           <p className="text-muted-foreground text-sm">
-            What was that brainrot image? Type your guess!
+            What was that image? Type your guess!
           </p>
           {currentBrainrotItem && (
-            <p className="text-xs text-purple-600 font-medium">
+            <p className="text-xs text-muted-foreground">
               Hint: {currentBrainrotItem.description}
             </p>
           )}
@@ -187,9 +216,14 @@ export function WordleGame() {
                 </p>
               </div>
             )}
-            <Button onClick={resetGame} className="mx-auto">
-              🔄 Next Brainrot Challenge
-            </Button>
+            <div className="flex gap-3 justify-center">
+              <Button onClick={resetGame} className="bg-foreground text-background hover:bg-muted-foreground">
+                NEXT CHALLENGE
+              </Button>
+              <Button onClick={quitGame} className="bg-transparent border border-foreground text-foreground hover:bg-foreground hover:text-background">
+                QUIT
+              </Button>
+            </div>
           </div>
         )}
       </div>
