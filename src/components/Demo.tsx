@@ -14,6 +14,7 @@ import {
 } from "wagmi";
 
 import { ShareButton } from "./ui/Share";
+import { WordleGame } from "./ui/WordleGame";
 
 import { config } from "~/components/providers/WagmiProvider";
 import { Button } from "~/components/ui/Button";
@@ -21,8 +22,6 @@ import { truncateAddress } from "~/lib/truncateAddress";
 import { base, degen, mainnet, optimism, unichain } from "wagmi/chains";
 import { BaseError, UserRejectedRequestError } from "viem";
 import { useMiniApp } from "@neynar/react";
-import { Header } from "~/components/ui/Header";
-import { Footer } from "~/components/ui/Footer";
 import { USE_WALLET, APP_NAME } from "~/lib/constants";
 
 export type Tab = "home" | "actions" | "context" | "wallet";
@@ -198,16 +197,9 @@ export default function Demo(
       }}
     >
       <div className="mx-auto py-2 px-4 pb-20">
-        <Header neynarUser={neynarUser} />
-
-        <h1 className="text-2xl font-bold text-center mb-4">{title}</h1>
-
         {activeTab === "home" && (
-          <div className="flex items-center justify-center h-[calc(100vh-200px)] px-6">
-            <div className="text-center w-full max-w-md mx-auto">
-              <p className="text-lg mb-2">Put your content here!</p>
-              <p className="text-sm text-gray-500">Powered by Neynar 🪐</p>
-            </div>
+          <div className="h-[calc(100vh-200px)]">
+            <WordleGame />
           </div>
         )}
 
@@ -383,12 +375,6 @@ export default function Demo(
             )}
           </div>
         )}
-
-        <Footer
-          activeTab={activeTab}
-          setActiveTab={setActiveTab}
-          showWallet={USE_WALLET}
-        />
       </div>
     </div>
   );
