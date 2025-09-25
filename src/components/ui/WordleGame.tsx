@@ -217,7 +217,7 @@ export function WordleGame() {
               </div>
             )}
             <div className="flex gap-3 justify-center">
-              <Button onClick={resetGame} className="bg-foreground text-background hover:bg-muted-foreground">
+              <Button onClick={resetGame} className="bg-transparent border border-foreground text-foreground hover:bg-foreground hover:text-background">
                 NEXT CHALLENGE
               </Button>
               <Button onClick={quitGame} className="bg-transparent border border-foreground text-foreground hover:bg-foreground hover:text-background">

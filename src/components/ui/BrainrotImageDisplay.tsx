@@ -39,7 +39,7 @@ export function BrainrotImageDisplay({
   }, [brainrotItem, displayDuration]);
 
   return (
-    <div className="flex flex-col items-center justify-center h-full bg-gray-900 text-white relative">
+    <div className="flex flex-col items-center justify-center min-h-screen bg-gray-900 text-white relative">
       {/* Quit button */}
       {onQuit && (
         <div className="absolute top-6 left-6">
